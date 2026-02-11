@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / run-time files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+.eggs/
+
+# Virtual environment
+venv/
+env/
+ENV/
+*.venv/
+# Windows at the root of the project
+venv
+
+# Editor-specific files
+.idea/  # JetBrains IDEs (PyCharm, etc.)
+.vscode/ # Visual Studio Code
+*.swp   # Vim
+
+# Distribution / packaging
+.Python
+build/
+dist/
+wheels/
+share/python-wheels/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Sensitive data / environment variables
+.env
+.flaskenv
+
+# OS-generated files
+.DS_Store # macOS
+.project  # macOS
+.settings # macOS
+.idea     # macOS
+
+model/
+ffmpeg_static/
+result/
+logs/
+*.log
