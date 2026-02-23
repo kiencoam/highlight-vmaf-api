@@ -274,7 +274,7 @@ async def get_video_highlights(
     page: int = Query(1, ge=1, description="Page number (starts from 1)"),
     size: int = Query(10, ge=1, le=100, description="Items per page"),
     order_by: str = Query("id", description="Column to sort by"),
-    order_direction: str = Query("desc", pattern="^(asc|desc)$", description="Sort direction")
+    order_direction: str = Query("asc", pattern="^(asc|desc)$", description="Sort direction")
 ):
     """
     Get paginated list of highlights for a specific video
