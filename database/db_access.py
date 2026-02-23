@@ -183,7 +183,7 @@ class DBAccess:
         # 1. Whitelist các cột được phép sort (Bảo mật)
         valid_columns = [
             "id", "video_id", "vmaf_mean", "vmaf_min", 
-            "vmaf_max", "duration", "start_time", "end_time"
+            "vmaf_max", "duration"
         ]
         
         if order_by not in valid_columns:
@@ -238,4 +238,72 @@ class DBAccess:
                     
         except Error as e:
             logger.error(f"Error counting video_stats: {e}")
+            return 0
+    
+    def get_frame_page(self, highlight_id, page=1, size=10, order_by='id', order_direction='asc'):
+        """
+        Lấy danh sách frames của một highlight cụ thể.
+        :param highlight_id: BẮT BUỘC.
+        """
+        # 0. Kiểm tra tham số bắt buộc
+        if not highlight_id:
+            logger.error("get_frame_page: highlight_id is required")
+            return []
+
+        # 1. Whitelist các cột được phép sort (Bảo mật)
+        valid_columns = [
+            "id", "highlight_id", "frame_num", "vmaf", 
+            "origin_url", "highlight_url"
+        ]
+        
+        if order_by not in valid_columns:
+            order_by = "id"
+            
+        if order_direction.lower() not in ["asc", "desc"]:
+            order_direction = "asc"
+
+        # 2. Xây dựng Query
+        sql = f"SELECT * FROM frame_info WHERE highlight_id = %s ORDER BY {order_by} {order_direction}"
+
+        # 3. Phân trang
+        limit = int(size)
+        offset = (int(page) - 1) * limit
+        
+        sql += " LIMIT %s OFFSET %s"
+        
+        # 4. Thực thi
+        try:
+            with self.pool.get_connection() as connection:
+                if not connection:
+                    return []
+                
+                with connection.cursor(dictionary=True) as cursor:
+                    cursor.execute(sql, (highlight_id, limit, offset))
+                    return cursor.fetchall()
+
+        except Error as e:
+            logger.error(f"Error fetching frames: {e}")
+            return []
+
+    def get_frame_count(self, highlight_id):
+        """
+        Đếm tổng số frames của một highlight_id (dùng để tính phân trang).
+        """
+        if not highlight_id:
+            return 0
+            
+        sql = "SELECT COUNT(*) as total FROM frame_info WHERE highlight_id = %s"
+
+        try:
+            with self.pool.get_connection() as connection:
+                if not connection:
+                    return 0
+                
+                with connection.cursor(dictionary=True) as cursor:
+                    cursor.execute(sql, (highlight_id,))
+                    result = cursor.fetchone()
+                    return result['total'] if result else 0
+                    
+        except Error as e:
+            logger.error(f"Error counting frames: {e}")
             return 0

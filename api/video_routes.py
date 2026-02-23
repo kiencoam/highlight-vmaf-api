@@ -319,3 +319,57 @@ async def get_video_highlights(
             message=f"Internal server error: {str(e)}",
             code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+# ==================== API 5: Get Highlight Frames ====================
+
+@router.get("/highlights/{highlight_id}/frames", response_model=ApiResponse)
+async def get_highlight_frames(
+    highlight_id: int = Path(..., ge=1, description="Highlight ID"),
+    page: int = Query(1, ge=1, description="Page number (starts from 1)"),
+    size: int = Query(10, ge=1, le=100, description="Items per page"),
+    order_by: str = Query("id", description="Column to sort by"),
+    order_direction: str = Query("asc", pattern="^(asc|desc)$", description="Sort direction")
+):
+    """
+    Get paginated list of frames for a specific highlight
+    
+    - **highlight_id**: ID of the highlight
+    - **page**: Page number (default: 1)
+    - **size**: Items per page (default: 10, max: 100)
+    - **order_by**: Sort column (default: id)
+    - **order_direction**: asc or desc (default: asc)
+    """
+    try:
+        # 1. Get frames list
+        frames = db.get_frame_page(
+            highlight_id=highlight_id,
+            page=page,
+            size=size,
+            order_by=order_by,
+            order_direction=order_direction
+        )
+        
+        # 2. Get total count
+        total_count = db.get_frame_count(highlight_id=highlight_id)
+        
+        # 3. Create pagination data
+        pagination_data = create_pagination_data(
+            items=frames,
+            total_items=total_count,
+            current_page=page,
+            page_size=size
+        )
+        
+        # 4. Return success response
+        return create_success_response(
+            data=pagination_data.dict(),
+            message="Frames retrieved successfully",
+            code=status.HTTP_200_OK
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in get_highlight_frames: {e}")
+        return create_error_response(
+            message=f"Internal server error: {str(e)}",
+            code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
