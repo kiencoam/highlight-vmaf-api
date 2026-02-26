@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, Path, status
 from typing import Optional
 import math
+import json
 
 from models import (
     ApiResponse, 
@@ -12,7 +13,7 @@ from models import (
 )
 from database.db_access import DBAccess
 from utils.redis_util import RedisClient
-from config.settings import QUEUE_NAME
+from config.settings import QUEUE_NAME_V1, QUEUE_NAME_V2, PROCESSOR_VERSION
 from config.log import logger
 
 
@@ -87,8 +88,17 @@ async def create_video(request: CreateVideoRequest):
         
         # 2. Push to Redis queue
         try:
-            redis_client.lpush(QUEUE_NAME, str(video_id))
-            logger.info(f"Video ID {video_id} pushed to Redis queue: {QUEUE_NAME}")
+            if PROCESSOR_VERSION == "v1":
+                redis_client.lpush(QUEUE_NAME_V1, str(video_id))
+                logger.info(f"Video ID {video_id} pushed to Redis queue: {QUEUE_NAME_V1}")
+            elif PROCESSOR_VERSION == "v2":
+                video_job_data = {
+                    "video_id": video_id,
+                    "original_url": request.original_url,
+                    "highlight_url": request.highlight_url,
+                }
+                redis_client.lpush(QUEUE_NAME_V2, json.dumps(video_job_data))
+                logger.info(f"Video ID {video_id} pushed to Redis queue: {QUEUE_NAME_V2}")
         except Exception as redis_error:
             logger.error(f"Failed to push to Redis: {redis_error}")
             # Note: Video is already in DB, so we don't fail the request
@@ -150,8 +160,17 @@ async def batch_create_videos(request: BatchCreateVideoRequest):
                 
                 # 2. Push to Redis queue
                 try:
-                    redis_client.lpush(QUEUE_NAME, str(video_id))
-                    logger.info(f"Video ID {video_id} pushed to Redis queue: {QUEUE_NAME}")
+                    if PROCESSOR_VERSION == "v1":
+                        redis_client.lpush(QUEUE_NAME_V1, str(video_id))
+                        logger.info(f"Video ID {video_id} pushed to Redis queue: {QUEUE_NAME_V1}")
+                    elif PROCESSOR_VERSION == "v2":
+                        video_job_data = {
+                            "video_id": video_id,
+                            "original_url": video_req.original_url,
+                            "highlight_url": video_req.highlight_url,
+                        }
+                        redis_client.lpush(QUEUE_NAME_V2, json.dumps(video_job_data))
+                        logger.info(f"Video ID {video_id} pushed to Redis queue: {QUEUE_NAME_V2}")
                 except Exception as redis_error:
                     logger.warning(f"Failed to push video ID {video_id} to Redis: {redis_error}")
                     # Video is already in DB, so we still count it as success

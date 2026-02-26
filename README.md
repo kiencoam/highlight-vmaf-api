@@ -274,9 +274,7 @@ Get paginated list of highlight segments for a specific video.
         "vmaf_mean": 95.5,
         "vmaf_min": 90.2,
         "vmaf_max": 98.7,
-        "duration": 15.5,
-        "start_time": 10.0,
-        "end_time": 25.5
+        "duration": 15.5
       }
     ]
   }
@@ -299,7 +297,65 @@ curl "http://localhost:8000/api/v1/videos/123/highlights?page=2&size=20&order_by
 
 ---
 
-### 5. Health Check
+### 5. Get Highlight Frames
+
+**GET** `/api/v1/highlights/{highlight_id}/frames`
+
+Get paginated list of frames for a specific highlight segment.
+
+**Path Parameters:**
+
+- `highlight_id` (int, required): Highlight ID
+
+**Query Parameters:**
+
+- `page` (int, optional): Page number (default: 1, min: 1)
+- `size` (int, optional): Items per page (default: 10, min: 1, max: 100)
+- `order_by` (string, optional): Sort column (default: id)
+- `order_direction` (string, optional): asc or desc (default: asc)
+
+**Response (200 OK):**
+
+```json
+{
+  "code": 200,
+  "status": "success",
+  "message": "Frames retrieved successfully",
+  "data": {
+    "totalItems": 450,
+    "totalPages": 45,
+    "currentPage": 1,
+    "items": [
+      {
+        "id": 1,
+        "highlight_id": 5,
+        "frame_num": 1,
+        "vmaf": 94.5,
+        "origin_url": "https://example.com/frames/original_001.jpg",
+        "highlight_url": "https://example.com/frames/highlight_001.jpg"
+      }
+    ]
+  }
+}
+```
+
+**cURL Examples:**
+
+Basic request:
+
+```bash
+curl "http://localhost:8000/api/v1/highlights/5/frames"
+```
+
+With pagination and sorting:
+
+```bash
+curl "http://localhost:8000/api/v1/highlights/5/frames?page=2&size=50&order_by=vmaf&order_direction=desc"
+```
+
+---
+
+### 6. Health Check
 
 **GET** `/health`
 

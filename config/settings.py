@@ -13,7 +13,13 @@ MYSQL_DB = os.getenv('MYSQL_DB')
 WORK_PATH = os.getenv('WORK_PATH')
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 MAX_WORKERS = int(os.getenv('MAX_WORKERS', '3'))
-QUEUE_NAME = os.getenv('QUEUE_NAME', 'queue:vmaf_jobs')
+
+PROCESSOR_VERSION = os.getenv('PROCESSOR_VERSION', 'v1')
+
+# Redis configuration
+
+QUEUE_NAME_V1 = os.getenv('QUEUE_NAME_V1', 'queue:vmaf_jobs')
+QUEUE_NAME_V2 = os.getenv('VIDEO_JOB_QUEUE', 'queue:video_jobs')
 BLPOP_TIMEOUT = int(os.getenv('BLPOP_TIMEOUT', '20'))  # seconds
 ROI = os.getenv('ROI', '0,0,500,300')  # Default full HD
 
