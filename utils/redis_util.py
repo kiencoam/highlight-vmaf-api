@@ -1,14 +1,17 @@
+import os
+
 from config.log import logger
 import time
 import threading
 from typing import Optional, List, Set, Any
 from redis import Redis
+from redis.cluster import ClusterNode, RedisCluster
 from redis.exceptions import RedisError, ConnectionError, TimeoutError
 from config.redis_config import RedisConfig
 
 
 class RedisClient:
-    """Thread-safe Singleton Redis Client for Redis Cloud"""
+    """Thread-safe Singleton Redis Client supporting both Standalone and Cluster"""
     
     _instance: Optional['RedisClient'] = None
     _lock = threading.Lock()
@@ -27,21 +30,47 @@ class RedisClient:
             return
         
         self._initialized = False
-        self.client: Optional[Redis] = None
+        self.client = None
+        self.is_cluster = False # Cờ đánh dấu chế độ hoạt động
         self._connect()
         self._initialized = True
     
     def _connect(self):
-        """Internal connection method"""
+        """Internal connection method with Standalone/Cluster toggle"""
         try:
-            logger.info(f"Connecting to Redis at {RedisConfig.HOST}:{RedisConfig.PORT}...")
+            cluster_nodes_env = os.getenv("REDIS_CLUSTER_NODES")
             
-            # Create Redis client (single instance, NOT cluster)
-            self.client = Redis(**RedisConfig.get_connection_params())
+            if cluster_nodes_env:
+                # CHẾ ĐỘ REDIS CLUSTER
+                self.is_cluster = True
+                logger.info(f"Connecting to Redis CLUSTER with nodes: {cluster_nodes_env}...")
+                
+                # Phân tích chuỗi và khởi tạo danh sách ClusterNode
+                startup_nodes = []
+                for node in cluster_nodes_env.split(","):
+                    host, port = node.strip().split(":")
+                    startup_nodes.append(ClusterNode(host, int(port)))
+                
+                params = RedisConfig.get_connection_params()
+                password = params.get('password')
+                
+                self.client = RedisCluster(
+                    startup_nodes=startup_nodes,
+                    decode_responses=True,
+                    password=password,
+                    socket_timeout=params.get('socket_timeout', 10),
+                    socket_connect_timeout=params.get('socket_connect_timeout', 15)
+                )
+            else:
+                # CHẾ ĐỘ REDIS STANDALONE
+                self.is_cluster = False
+                logger.info(f"Connecting to Redis STANDALONE at {RedisConfig.HOST}:{RedisConfig.PORT}...")
+                self.client = Redis(**RedisConfig.get_connection_params())
             
             # Test connection
             self.client.ping()
-            logger.info("✅ Connected to Redis successfully")
+            mode_name = "CLUSTER" if self.is_cluster else "STANDALONE"
+            logger.info(f"✅ Connected to Redis {mode_name} successfully")
             
         except Exception as e:
             logger.error(f"❌ Failed to connect to Redis: {e}")
